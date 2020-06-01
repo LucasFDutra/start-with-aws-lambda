@@ -25,8 +25,9 @@ provider:
   runtime: python3.8
   region: sa-east-1
   httpApi:
-    cors: true
-
+    cors: 
+      allowedOrigins:
+        - https://url1.com
 # you can overwrite defaults here
 #  stage: dev
 #  region: us-east-1
