@@ -403,4 +403,6 @@ package:
 ```
 
 # Utilizando bibliotecas na função
+Você pode por exemplo cliar um layer dentro da aws e utilizar ele. Ou mandar as libs juntamente com seu código
 
+<!-- continua.... -->
