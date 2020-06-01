@@ -387,4 +387,13 @@ on:
 Assim, toda vez que acontecer um push ou um pull requeste para a master que esteja modificando arquivos .py ou .yml ele ativa a action, caso contrário ele não ativa.
 
 ### Serverless
-Outro problema, é que está subindo para dentro da função lambda tudo que está nessa pasta. Até mesmo as imgagens, e isso deixa tudo mais lento. para impedir que isso aconteça
+Outro problema, é que está subindo para dentro da função lambda tudo que está nessa pasta. Até mesmo as imgagens, e isso deixa tudo mais lento. para impedir que isso aconteça apenas adicione ao arquivo `serverless.yml` as linha abaixo
+
+```yml
+package:
+  exclude:
+    - img
+    - README.md
+    - LICENSE.md
+    - .github
+```

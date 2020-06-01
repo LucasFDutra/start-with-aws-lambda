@@ -60,6 +60,13 @@ provider:
 #    - exclude-me.py
 #    - exclude-me-dir/**
 
+package:
+  exclude:
+    - img
+    - README.md
+    - LICENSE.md
+    - .github
+
 functions:
   hello:
     handler: handler.hello
