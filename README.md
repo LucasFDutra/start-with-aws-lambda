@@ -367,4 +367,24 @@ Depois do processo ser concluído, entre no link da sua função lambda e veja a
 <img src='./img/fig015.gif'/>
 
 ## Melhorando o processo
+### Action
 Como a action está executando sempre que ocorre uma modificação na master, então até mesmo uma modificação do readme faz com que o processo de deploy ocorra. Mas isso não e uma boa ideia, afinal leva tempo para executar. Então seria melhor que a action executasse somente quando modificarmos o arquivo `handler.py` ou o arquivo `serverless.yml`. Para isso, abra o arquivo da action, e vamos modificá-lo da seguinte forma:
+
+```yml
+on:
+  push:
+    branches: [ master ]
+    paths: 
+      - '**.py'
+      - '**.yml'
+  pull_request:
+    branches: [ master ]
+    paths: 
+      - '**.py'
+      - '**.yml'
+```
+
+Assim, toda vez que acontecer um push ou um pull requeste para a master que esteja modificando arquivos .py ou .yml ele ativa a action, caso contrário ele não ativa.
+
+### Serverless
+Outro problema, é que está subindo para dentro da função lambda tudo que está nessa pasta. Até mesmo as imgagens, e isso deixa tudo mais lento. para impedir que isso aconteça
