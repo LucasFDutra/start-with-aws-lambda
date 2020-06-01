@@ -62,10 +62,10 @@ provider:
 
 package:
   exclude:
-    - img
+    - img/**
     - README.md
-    - LICENSE.md
-    - .github
+    - LICENSE
+    - .github/**
 
 functions:
   hello:

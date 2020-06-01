@@ -368,6 +368,8 @@ Depois do processo ser concluído, entre no link da sua função lambda e veja a
 
 ## Melhorando o processo
 ### Action
+[Documentação](https://help.github.com/pt/actions/reference/workflow-syntax-for-github-actions)
+
 Como a action está executando sempre que ocorre uma modificação na master, então até mesmo uma modificação do readme faz com que o processo de deploy ocorra. Mas isso não e uma boa ideia, afinal leva tempo para executar. Então seria melhor que a action executasse somente quando modificarmos o arquivo `handler.py` ou o arquivo `serverless.yml`. Para isso, abra o arquivo da action, e vamos modificá-lo da seguinte forma:
 
 ```yml
@@ -387,13 +389,18 @@ on:
 Assim, toda vez que acontecer um push ou um pull requeste para a master que esteja modificando arquivos .py ou .yml ele ativa a action, caso contrário ele não ativa.
 
 ### Serverless
+[Documentação](https://www.serverless.com/framework/docs/providers/aws/guide/packaging/)
+
 Outro problema, é que está subindo para dentro da função lambda tudo que está nessa pasta. Até mesmo as imgagens, e isso deixa tudo mais lento. para impedir que isso aconteça apenas adicione ao arquivo `serverless.yml` as linha abaixo
 
 ```yml
 package:
   exclude:
-    - img
+    - img/**
     - README.md
-    - LICENSE.md
-    - .github
+    - LICENSE
+    - .github/**
 ```
+
+# Utilizando bibliotecas na função
+
