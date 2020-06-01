@@ -1,5 +1,5 @@
 # Objetivo
-Criar uma função serverless utilizando o framework serverless e fazendo continuos deploy dessa função.
+Criar uma função serverless utilizando o framework serverless e fazer continuos deploy dessa função.
 
 # Instalar
 - [node](https://nodejs.org/en/)
@@ -37,7 +37,7 @@ Agora vá até a aws e crie um novo usuário IAM
 
 <img src='./img/fig003.png'/>
 
-> OBS.: se for o caso, você pode escolher politicas de acesso diferentes para seus usuários, eu peguei essa, mas ela da acesso a tudo, então vai de cada caso, mas garanta que tera acesso a tudo que for necessário.
+> OBS.: se for o caso, você pode escolher politicas de acesso diferentes para seus usuários, eu peguei essa, mas ela da acesso a tudo, então vai de cada caso, mas garanta que terá acesso a tudo que for necessário.
 
 - nas próximas duas telas, apenas de next.
 
@@ -67,7 +67,7 @@ Para ver todos os templates possíveis, rode o comando
 $ serverless create --help
 ```
 
-Para seguir com o exemplo eu vou escolher o template de aws-python3 e darei o nome para `python-serverless`
+Para seguir com o exemplo eu vou escolher o template de aws-python3 e darei o nome de `python-serverless`
 
 ```shell
 $ serverless create --template aws-python3 --path python-serverless
@@ -146,7 +146,7 @@ Você pode configurar isso pelo proprio painel da aws, mas pode também fazer is
 
 Temos agora dois jeitos de invocar uma função lambda, com uma request http, ou então com um evento. Com evento eu quero dizer "alguma modificação dentro dos servições da aws", por exemplo, sempre que aparecer um arquivo novo em um dado bucket a função lambda executará.
 
-Para o nosso caso, vamos colocar o evento como sendo uma chamada a uma api, nesse caso a [http api](https://www.serverless.com/framework/docs/providers/aws/events/http-api/) que é um serviço da aws.
+Para o nosso caso, vamos colocar o evento como sendo uma chamada a uma api, nesse caso a [http api](https://www.serverless.com/framework/docs/providers/aws/events/http-api/) que é um serviço da aws (na aws será criada uma Api Getway).
 
 Para configurar isso através do serverless, basta modificar o arquivo `serverless.yml` deixando-o da seguinte forma:
 
@@ -160,13 +160,12 @@ functions:
           path: /
 ```
 
-Ou seja, eu defini que quando chamarmos o endereço http da nossa api na rota `/` via verbo GET nos iremos executar a função hello.
+Ou seja, eu defini que quando chamarmos o endereço http da nossa api na rota `/` via verbo GET nós iremos executar a função hello.
 
 Se quisermos definir que nossa api terá várias rotas, e que cada uma executará uma função diferente para nós, basta criar essas funções dentro da função lambda, por exemplo
 
 ```Python
 import json
-
 
 def hello(event, context):
     body = {
@@ -206,7 +205,7 @@ functions:
   helloWorld:
     handler: handler.helloWorld
     events:
-      - httpApi;
+      - httpApi:
           method: GET
           path: /world
 ```
@@ -216,14 +215,13 @@ functions:
 ## Cors
 Agora precisamos habilitar o cors para que as requestes possam ser feitas a partir do navegador. Para isso configure o arquivo `.yml`
 
-
 ```yml
 provider:
   httpApi:
     cors: true
 ```
 
-So que ao fazer isso o cors está habilitado para qualquer origem. Ou seja, se você deseja que seja possível apenas para sua aplicação chamar essa função lambda, isso ai não pode ser feito. Pois desse jeito, qualquer um que tenha o link da aplicação pode chamá-la. Se esse for o objetivo então está tudo certo. Mas se não escreva:
+Só que ao fazer isso o cors está habilitado para qualquer origem. Ou seja, se você deseja que seja possível apenas para sua aplicação chamar essa função lambda, isso ai não pode ser feito. Pois desse jeito, qualquer um que tenha o link da aplicação pode chamá-la. Se esse for o objetivo então está tudo certo. Mas se não escreva:
 
 ```yml
 provider:
@@ -234,7 +232,7 @@ provider:
         - https://url2.com
 ```
 
-Assim você pormite que apenas essas duas urls chamem sua api (executem a função). Sendo assim você pode passar a url do seu backend ou frontend e quando ele fizer uma request a essa função ela irá permitir a execução.
+Assim você permite que apenas essas duas urls chamem sua api (executem a função). Sendo assim você pode passar a url do seu backend ou frontend e quando ele fizer uma request a essa função ela irá permitir a execução.
 
 Também é possível de forma bem simples, configurar jwt, verbos http permitidos, quais os tipos de headers podem ser passados. Veja a [documentação](https://www.serverless.com/framework/docs/providers/aws/events/http-api#cors-setup) para melhor se informar de como fazer isso.
 
@@ -358,7 +356,7 @@ jobs:
 
 Esse arquivo contém as instruções para que o github actions execute. Nele, eu estou mandando utilizar uma máquina ubuntu, com o node, e depois instalar o serverless e configura-lo com nossas variáveis ambiente, e depois fazer o deploy. Sendo que essa ação ocorre sempre que fizermos um push ou um pull_request para dentro da master.
 
-Pronto, agora qualquer modificação que fizer dentro da master será automaticamente enviada para a aws. Para ver o processo acontecendo, irei fazer uma modificação aqui no código, mandano a função `hello` mostrar apenas `hello you!!`.
+Pronto, agora qualquer modificação que fizer dentro da master será automaticamente enviada para a aws. Para ver o processo acontecendo, irei fazer uma modificação aqui no código, mandando a função `hello` mostrar apenas `hello you!!`.
 
 <img src='./img/fig014.gif'/>
 
@@ -367,3 +365,6 @@ Pronto, agora qualquer modificação que fizer dentro da master será automatica
 Depois do processo ser concluído, entre no link da sua função lambda e veja a mudança
 
 <img src='./img/fig015.gif'/>
+
+## Melhorando o processo
+Como a action está executando sempre que ocorre uma modificação na master, então até mesmo uma modificação do readme faz com que o processo de deploy ocorra. Mas isso não e uma boa ideia, afinal leva tempo para executar. Então seria melhor que a action executasse somente quando modificarmos o arquivo `handler.py` ou o arquivo `serverless.yml`. Para isso, abra o arquivo da action, e vamos modificá-lo da seguinte forma:
