@@ -110,9 +110,10 @@ $ serverless config credentials --provider aws --key 1234 --secret 5678
 ```
 
 > OBS.: Caso já tenha feito isso alguma fez antes, coloque `-o` na frente de `credentials` para o serverless sobreescrever as informações que ele tinha antes.
-    ```shell
-    $ serverless config credentials -o --provider <provider> --key <Access key ID> --secret <Secret access key>
-    ```
+
+>    ```shell
+>    $ serverless config credentials -o --provider <provider> --key <Access key ID> --secret <Secret access key>
+>    ```
 
 # Fazendo o deploy
 [Documentação](https://www.serverless.com/framework/docs/providers/aws/cli-reference/deploy/)
