@@ -2,12 +2,14 @@ name: CD
 on:
   push:
     branches: [ master ]
-    paths: '**.py'
-    paths: '**.yml'
+    paths: 
+      - '**.py'
+      - '**.yml'
   pull_request:
     branches: [ master ]
-    paths: '**.py'
-    paths: '**.yml'
+    paths: 
+      - '**.py'
+      - '**.yml'
 
 jobs:
   build:
