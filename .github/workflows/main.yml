@@ -5,11 +5,6 @@ on:
     paths: 
       - '**.py'
       - '**.yml'
-  pull_request:
-    branches: [ master ]
-    paths: 
-      - '**.py'
-      - '**.yml'
 
 jobs:
   build:
