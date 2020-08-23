@@ -1,3 +1,27 @@
+# SUMÁRIO
+- [**1. AWS LAMBDA FUNCTIONS**](#1.-AWS-LAMBDA-FUNCTIONS)
+- [**2. COMEÇANDO COM LAMBDA**](#2.-COMEÇANDO-COM-LAMBDA)
+  - [2.1 CRIANDO USUÁRIO](#2.1-CRIANDO-USUÁRIO)
+  - [2.2 CRIANDO A FUNÇÃO](#2.2-CRIANDO-A-FUNÇÃO)
+  - [2.3 COMO UTILIZAR](#2.3-COMO-UTILIZAR)
+    - [2.3.1 Exemplo](#2.3.1-Exemplo)
+  - [2.4 LAYERS](#2.4-LAYERS)
+- [**3. SERVERLESS FRAMEWORK**](#3.-SERVERLESS-FRAMEWORK)
+  - [3.1 INSTALAR](#3.1-INSTALAR)
+  - [3.2 CRIANDO TEMPLATE COM SERVERLESS](#3.2-CRIANDO-TEMPLATE-COM-SERVERLESS)
+  - [3.3 CONFIGURANDO AS CREDENCIAIS](#3.3-CONFIGURANDO-AS-CREDENCIAIS)
+  - [3.4 FAZENDO O DEPLOY](#3.4-FAZENDO-O-DEPLOY)
+  - [3.5 COMO DISPARAR ESSA FUNÇÃO](#3.5-COMO-DISPARAR-ESSA-FUNÇÃO)
+    - [3.5.1 Cors](#3.5.1-Cors)
+- [**4. TESTE SUAS APLICAÇÕES LOCALMENTE**](#4.-TESTE-SUAS-APLICAÇÕES-LOCALMENTE)
+  - [4.1 TESTE DE API](#4.1-TESTE-DE-API)
+  - [4.2 LOCALSTACK](#4.2-LOCALSTACK)
+- [**5. GITHUB E CONTINUOUS DEPLOY**](#5.-GITHUB-E-CONTINUOUS-DEPLOY)
+  - [5.1 GITHUB ACTIONS](#5.1-GITHUB-ACTIONS)
+    - [5.1.1 Explicando a action](#5.1.1-Explicando-a-action)
+
+---
+
 # 1. AWS LAMBDA FUNCTIONS
 
 Lambda é o nome das funções serverless da aws. Uma função serverless é um script que executará mediante um evento, sendo ele uma requeste em um dado endpoint ou um evento dentro do ecossistema da aws (como a inserção de um arquivo no s3). Essas funções não precisam de um servidor dedicado, elas simplesmente executam quando chamadas e depois "somem". Uma função serverless também pode ser executada em paralelo a ela mesma, ou seja, caso aconteçam eventos simultâneos cada evento executa sua própria função, isso pode tornar processamentos longos e sequênciais bem rápidos, um exemplo para isso seria o processamento de múltiplos arquivos, que ocorreriam de forma sequêncial em um servidor EC2, mas com as lambdas cada arquivo terá sua própria função executando, fazendo com que todos eles sejam processados ao mesmo tempo. Outra vantagem é o fato de que você paga somente o que usar, e normalmente esse tipo de função é bem barata (se você não fizer besteira, como por exemplo recursividade infinita nas chamadas), evitando pagar por um gasto "fixo" com um EC2 que não seria utilizado em 100% do tempo.
