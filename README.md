@@ -1,36 +1,19 @@
-- [Serverless](#Serverless)
-- [CLI](#CLI)
+# 1. AWS LAMBDA FUNCTIONS
 
-# Objetivo
-Mostrar duas formas de criar funções lambda, e fazer deploy automático para a aws via github actions. Sendo que a primeira que mostrarei será via o framwork serverless, e a segunda utiliza a cli da aws. Já adianto que o segundo método além de mais simples, é muito mais rápido. O método com serverless demora em torno de 50 segundos a 1:30 min para executar, já com a cli demora em torno de 5 a 16 segundos.
+Lambda é o nome das funções serverless da aws. Uma função serverless é um script que executará mediante um evento, sendo ele uma requeste em um dado endpoint ou um evento dentro do ecossistema da aws (como a inserção de um arquivo no s3). Essas funções não precisam de um servidor dedicado, elas simplesmente executam quando chamadas e depois "somem". Uma função serverless também pode ser executada em paralelo a ela mesma, ou seja, caso aconteçam eventos simultâneos cada evento executa sua própria função, isso pode tornar processamentos longos e sequênciais bem rápidos, um exemplo para isso seria o processamento de múltiplos arquivos, que ocorreriam de forma sequêncial em um servidor EC2, mas com as lambdas cada arquivo terá sua própria função executando, fazendo com que todos eles sejam processados ao mesmo tempo. Outra vantagem é o fato de que você paga somente o que usar, e normalmente esse tipo de função é bem barata (se você não fizer besteira, como por exemplo recursividade infinita nas chamadas), evitando pagar por um gasto "fixo" com um EC2 que não seria utilizado em 100% do tempo.
 
-# Serverless
+# 2. COMEÇANDO COM LAMBDA
 ---
 
-## Instalar
-- [node](https://nodejs.org/en/)
-- [serverless framwork](https://www.serverless.com/framework/docs/getting-started/)
-    ```shell
-    $ npm install -g serverless
-    $ npm update -g serversless
-    ```
+Para criar uma função lambda, podemos utilizar diretamente o painel da aws ou então utilizar o auxilio de um framework como o serverless framework. Mas vamos começar a trabalhando pelo próprio painel da aws.
 
-> OBS.: não é necessário instalar pelo node, mas a vantagem disso é que fica o mesmo comando para todos os sistemas operacionais, mas caso queira utilizar o gerenciador de pacotes do seu sistema, fique a vontade. Mas no windows ele utiliza o [chocolatey](https://chocolatey.org/) para fazer a instalação, então é necessário instalá-lo também.
+## 2.1 CRIANDO USUÁRIO
+---
 
-Para confirmar a instalação rode o comando
-```shell
-$ serverless --version
-```
-
-Se retornar alguma versão então está tudo ok.
-
-Para te auxiliar, tenha sempre a documentação aberta. Lá eles ensinam como configurar tudo para os serviços de serverless. Vá para [user guide](https://www.serverless.com/framework/docs/providers/aws/guide/) que vai te ajudar muito.
-
-## Criando usuário
 Agora vá até a aws e crie um novo usuário IAM
 
 - entre na sua conta e pesquise por IAM no painel de controle da aws
-- Chegando no painel, escolha na barra leteral a opção `Users`
+- Chegando no painel, escolha na barra lateral a opção `Users`
 - Click no botão `Add user`
 
 <img src='./img/fig001.png'/>
@@ -55,7 +38,125 @@ Agora vá até a aws e crie um novo usuário IAM
 
 <img src='./img/fig005.png'/>
 
-## Criando template com serverless
+## 2.2 CRIANDO A FUNÇÃO
+---
+
+Aqui vamos criar a função via interface da aws. Para isso:
+
+- Pesquise no console por lambda:
+
+- Clique em `Create function`:
+
+<img src='./img/fig006.png'/>
+
+- Escolha um nome e a runtime da sua função, e depois click em `Create function`
+
+<img src='./img/fig007.png'/>
+
+- Agora configure o trigger da forma que preferir, e copie o código da sua função lambda para ter um ponto de partida.
+
+<img src='./img/fig008.png'/>
+
+> OBS.: Não sei porque, mas a minha lambda foi criada com o código errado no import, `- import json`, depois eu retirei o traço e funcionou normal, então fique atento com a sua.
+
+Agora que a função está criada você pode editá-la dentro da área `Function code` da aws (mais a frente vou mostrar como fazer isso através da sua máquina e integrar ao github)
+
+## 2.3 COMO UTILIZAR 
+---
+
+Primeiramente, quero deixar claro que tudo que chega até a função vem para dentro do parâmetro `event`, em forma de dicionário. Então o melhor jeito de entender onde cada coisa está, é simplesmente retornar o `event` na tela com um simples `print(event)`.
+
+Para isso você pode criar um teste para sua lambda através do console (caso seja um evento interno a aws), mas caso tenha criado o evento como sendo uma API então faça a requeste no endpoint fornecido pela função e veja o retorno.
+
+> OBS.: Nesse caso, coloque o event como sendo o retorno da função:
+```Python
+    response = {
+        "statusCode": 200,
+        "body": json.dumps(event)
+    }
+```
+
+Tendo em mente o retorno do event, você agora irá trabalhar com manipulação de dicionário em python (cada linguarem utilizará uma estrutura de dados, node, por exemplo, utiliza objetos js).
+
+Do mais não tenho muito o que falar, sabendo como visualizar o retorno do event, e tendo em mente que tudo que vem daqui para frente é a linguagem em sí, você pode ir criando suas funções.
+
+### 2.3.1 Exemplo
+---
+
+Aqui temos um exemplo simples de uma função, que está sendo ativada por uma api, e que receberá um parâmetro vindo pelo header, chamado `testeheader`, e pelo body virá `email` e `user`, depois juntei tudo isso e retornei em forma de json para o endpoint
+
+```Python
+import json
+
+def hello(event, context):
+    header = event["multiValueHeaders"]["testeheader"]
+    ev_body = json.loads(event["body"])
+    email = ev_body["email"]
+    user = ev_body["user"]
+    body = {
+        "message": "hello",
+        "header": header,
+        "email": email,
+        "user": user
+    }
+
+    response = {
+        "statusCode": 200,
+        "body": json.dumps(body)
+    }
+
+    return response
+```
+
+## 2.4 LAYERS
+---
+
+Quando precisarmos utilizar bibliotecas na nossa função, vamos colocá-las dentro de um layer, e puxar esse layer para dentro da nossa função. 
+
+Para criar um layer você precisa do zip do código da função, você pode baixar ele através do pypi por exemplo, e mandar o mesmo para dentro de uma pasta no s3. Então no painel da lambda você terá a opção de criar um novo layer, durante a criação aponte para o zip no s3 e pronto, você tem um layer criado.
+
+Uma vez que você adicionar um layer ao seu projeto, é como se você tivesse feito a instalação da lib no projeto. Então pode simplesmente colocar:
+
+```Python
+import pandas as pd
+import numpy as np
+
+# .....
+```
+
+Como se estivesse na sua máquina.
+
+# 3. SERVERLESS FRAMEWORK
+---
+
+> OS CÓDIGOS DESSA PARTE ESTÃO NA PASTA [01_SERVERLESS](./01_SERVERLESS)
+
+O serverless é um framework que pode nos ajudar bastante na criação de uma função. Tendo ele você pode criar e configurar uma lambda sem precisar acessar o painel da aws. O que pode ser muito bom para o caso de não ter acesso direto ao painel (as vezes sua empresa não te forneceu isso por segurança). E ele também será muito útil para nós quando quisermos testar nossas funções.
+
+> OBS.: É necessário que tenha criado um usuário e tenha as credenciais para que possa fazer as coisas na aws.
+
+## 3.1 INSTALAR
+---
+
+- [node](https://nodejs.org/en/)
+- [serverless framwork](https://www.serverless.com/framework/docs/getting-started/)
+    ```shell
+    $ npm install -g serverless
+    $ npm update -g serversless
+    ```
+
+Para confirmar a instalação rode o comando
+```shell
+$ serverless --version
+```
+
+Se retornar alguma versão então está tudo ok.
+
+Para te auxiliar, tenha sempre a documentação aberta. Lá eles ensinam como configurar tudo para os serviços de serverless. Vá para [user guide](https://www.serverless.com/framework/docs/providers/aws/guide/) que vai te ajudar muito.
+
+## 3.2 CRIANDO TEMPLATE COM SERVERLESS
+---
+
 [Documentação](https://www.serverless.com/framework/docs/providers/aws/cli-reference/create/)
 
 Como o serverless consegue criar funções lambda em qualquer serviço, seja ele aws, google, azure, ele precisa criar um template de acordo com esse serviço, para que o serviço em si entenda como deve fazer a criação do mesmo. Para isso rode o comando:
@@ -83,7 +184,7 @@ Veja que ele cria uma pasta com o nome `python-serverless`, e dentro dela temos 
 - handler.py: que é a função serverless
 - serverless.yml: que contém as configurações para tudo funcionar corretamente
 
-> ⚠️ A partir de agora redirecione o seu teminal para dentro dessa pasta.
+> ⚠️ A partir de agora redirecione o seu terminal para dentro dessa pasta.
 
 uma parte importante do arquivo yml é
 ```yml
@@ -92,7 +193,7 @@ functions:
     handler: handler.hello
 ```
 
-Que indica o nome da função e o arquivo dela. se você notar o seu arquivo handler.py, você vai ver que o nome dele é handler, por isso o handler.hello, e o nome da função dentro dele é hello. para ficar melhor de entender, imagine que o arquivo handler fosse renomeado para `test` e a função dentro dele se chamasse `myFunction`, então teriamos
+Que indica o nome da função e o arquivo dela. se você notar o seu arquivo handler.py, você vai ver que o nome dele é handler, por isso o handler.hello, e o nome da função dentro dele é hello. para ficar melhor de entender, imagine que o arquivo handler fosse renomeado para `test` e a função dentro dele se chamasse `myFunction`, então teríamos.
 
 ```yml
 functions:
@@ -100,10 +201,12 @@ functions:
     handler: test.myFunction
 ```
 
-## Configurando as credênciais
+## 3.3 CONFIGURANDO AS CREDENCIAIS
+---
+
 [Documentação](https://www.serverless.com/framework/docs/providers/aws/cli-reference/config-credentials/)
 
-Agora precisamos configurar as credênciais para que o framework consiga subir a aplicação para a aws, para isso vamos precisar das credênciais daquele usuário que criamos anteriormente. Para fazer isso é bem simples. digite no teminal:
+Agora precisamos configurar as credenciais para que o framework consiga subir a aplicação para a aws, para isso vamos precisar das credenciais daquele usuário que criamos anteriormente. Para fazer isso é bem simples. digite no terminal:
 
 ```shell
 $ serverless config credentials --provider <provider> --key <Access key ID> --secret <Secret access key>
@@ -116,12 +219,13 @@ $ serverless config credentials --provider aws --key 1234 --secret 5678
 ```
 
 > OBS.: Caso já tenha feito isso alguma fez antes, coloque `-o` na frente de `credentials` para o serverless sobreescrever as informações que ele tinha antes.
-
 >    ```shell
 >    $ serverless config credentials -o --provider <provider> --key <Access key ID> --secret <Secret access key>
 >    ```
 
-## Fazendo o deploy
+## 3.4 FAZENDO O DEPLOY
+---
+
 [Documentação](https://www.serverless.com/framework/docs/providers/aws/cli-reference/deploy/)
 
 Basta digitar no terminal o comando 
@@ -136,24 +240,27 @@ $ serverless deploy -v
 
 Se você der o comando com o -v você notara que ele criou a função lambda, mas também criou um bucket no S3, isso porque a função lambda fica salva no S3 como um arquivo zip.
 
+<img src='./img/fig009.png'/>
+
 Se você entrar na sua conta da aws, e for procurar a função lambda, você verá a sua função não aparece, isso porque ela foi criada na região default, que é N. Virginia. Mas isso é passível de configuração, para mudar para São Paulo, basta fazer o seguinte no arquivo `serverless.yml`:
+
+<img src='./img/fig010.png'/>
 
 ```yml
 provider:
-  region: sa-east-1
+    region: sa-east-1
 ```
 
-<img src='./img/fig006.png'/>
-<img src='./img/fig007.png'/>
+## 3.5 COMO DISPARAR ESSA FUNÇÃO
+---
 
-## Como disparar essa função
 [Documentação](https://www.serverless.com/framework/docs/providers/aws/events/)
 
-Você pode configurar isso pelo proprio painel da aws, mas pode também fazer isso com a ajuda do serveless. Eu vou seguir com o serverless.
+Você pode configurar isso pelo próprio painel da aws, mas pode também fazer isso com a ajuda do serverless. Eu vou seguir com o serverless.
 
 Temos agora dois jeitos de invocar uma função lambda, com uma request http, ou então com um evento. Com evento eu quero dizer "alguma modificação dentro dos servições da aws", por exemplo, sempre que aparecer um arquivo novo em um dado bucket a função lambda executará.
 
-Para o nosso caso, vamos colocar o evento como sendo uma chamada a uma api, nesse caso a [http api](https://www.serverless.com/framework/docs/providers/aws/events/http-api/) que é um serviço da aws (na aws será criada uma Api Getway).
+Para o nosso caso, vamos colocar o evento como sendo uma chamada a uma api, nesse caso a [http api](https://www.serverless.com/framework/docs/providers/aws/events/http-api/) que é um serviço da aws (na aws será criada uma Api Gateway).
 
 Para configurar isso através do serverless, basta modificar o arquivo `serverless.yml` deixando-o da seguinte forma:
 
@@ -221,7 +328,9 @@ functions:
 
 > OBS.: Se quiser passar parâmetros pela rota, basta configurar o path dessa rota da seguinte forma: `path: /get/any/{param}`.
 
-### Cors
+### 3.5.1 Cors
+---
+
 Agora precisamos habilitar o cors para que as requestes possam ser feitas a partir do navegador. Para isso configure o arquivo `.yml`
 
 ```yml
@@ -278,199 +387,322 @@ Depois de tudo isso, basta executar:
 $ serverless deploy
 ```
 
-Que todas as modificações serão mandadas para a aws. Se rodar o comando com -v poderá ver que dentre os logs ele te retorna os endpoits das funções
-
-<img src='./img/fig008.png'/>
-
-E se for para dentro da função lá no painel da aws, você verá que temos um trigger para essa função
-
-<img src='./img/fig009.png'/>
-
-E se jogarmos essas urls no navegador termos:
-
-<img src='./img/fig010.gif'/>
-
-> OBS.: Se você for nas suas funções lambda agora, verá que tem duas funções lá, isso acontece porque temos duas funções dentro desse código. Então pode ser que seja melhor criar uma função para cada coisa, porque vai ser sepado de qualquer jeito. Mas aqui foi um exemplo, então foi assim mesmo.
-
-> OBS.: Como utilizei apenas métodos get o cors não faz muita diferença, mas se fosse post ou qualquer outro verbo http, ai sim faria diferença.
-
-## Continuous Deploy
-
-### Configurando a organização dos arquivos
-Primeiro de tudo, precisamos que todos os arquivos que estavam nessa pasta (`python-serverless`) passem para a pasta principal do repositório.
-
-- Antes:
-  ```shell
-  ├── python-serverless
-  │   ├── handler.py
-  │   ├── .gitignore
-  │   └── serverless.yml
-  └── README.md
-  ```
-
-- Depois:
-  ```shell
-  ├── handler.py
-  ├── README.md
-  ├── .gitignore
-  └── serverless.yml
-  ```
-
-### Configurando o repositório no github
-- Vá até o repositório no github
-- Abra as `Settings` do repositório
+Que todas as modificações serão mandadas para a aws. Se rodar o comando com -v poderá ver que dentre os logs ele te retorna os endpoints das funções
 
 <img src='./img/fig011.png'/>
 
-- Vá em `Secrets` e depois em `New secret`, para criar uma chave, veja no na imagem que criei duas chaves, que são as chaves necessárias para o serverless ter acesso a aws.
+E se for para dentro da função lá no painel da aws, você verá que temos um trigger para essa função
 
 <img src='./img/fig012.png'/>
 
-> OBS.: Como já diz na propria página do github, essas variáveis ambiente não são mostradas para ninguém, nem mesmo para um fork da aplicação.
+E se jogarmos essas urls no navegador termos:
 
-- Agora vá em `Actions` e `set up a workflow yourself`
+<img src='./img/fig013.gif'/>
 
-<img src='./img/fig013.png'/>
+> OBS.: Se você for nas suas funções lambda agora, verá que tem duas funções lá, isso acontece porque temos duas funções dentro desse código. Então pode ser que seja melhor criar uma função para cada coisa, porque vai ser separado de qualquer jeito. Mas aqui foi um exemplo, então foi assim mesmo.
 
-- na tela que se abre, você pode clicar em `Documentation` para aprender um pouco melhor como funciona para configurar esse arquivo. Mas para nossas finalidades basta copiar isso aqui:
+> OBS.: Como estamos chamando a função direto pela url e não de dentro de um código js, o cors não faz muita diferença.
 
-```yml
-name: CD
-on:
-  push:
-    branches: [ master ]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-      
-    - name: Setup Node
-      uses: actions/setup-node@v1
-      with:
-        node-version: '12.x'
-
-    - name: Install serverless
-      run: npm install -g serverless
-    
-    - name: Configure serverless
-      run: serverless config credentials --provider aws --key ${{ secrets.ACCESS_KEY_ID }} --secret ${{ secrets.SECRETE_ACCESS_KEY }}
-
-    - name: Serverless deploy
-      run: serverless deploy
-```
-
-> OBS.: Esse código está dentro do arquivo `serverless_main_action.yml`.
-
-Esse arquivo contém as instruções para que o github actions execute. Nele, eu estou mandando utilizar uma máquina ubuntu, com o node, e depois instalar o serverless e configura-lo com nossas variáveis ambiente, e depois fazer o deploy. Sendo que essa ação ocorre sempre que fizermos um push para dentro da master.
-
-Pronto, agora qualquer modificação que fizer dentro da master será automaticamente enviada para a aws. Para ver o processo acontecendo, irei fazer uma modificação aqui no código, mandando a função `hello` mostrar apenas `hello you!!`.
-
-<img src='./img/fig014.gif'/>
-
-> OBS.: Não deixei o gif concluir pois o processo demora um pouco, então o gif ficaria muito grande.
-
-Depois do processo ser concluído, entre no link da sua função lambda e veja a mudança
-
-<img src='./img/fig015.gif'/>
-
-### Melhorando o processo
-#### Action
-[Documentação](https://help.github.com/pt/actions/reference/workflow-syntax-for-github-actions)
-
-Como a action está executando sempre que ocorre uma modificação na master, então até mesmo uma modificação do readme faz com que o processo de deploy ocorra. Mas isso não e uma boa ideia, afinal leva tempo para executar. Então seria melhor que a action executasse somente quando modificarmos o arquivo `handler.py` ou o arquivo `serverless.yml`. Para isso, abra o arquivo da action, e vamos modificá-lo da seguinte forma:
-
-```yml
-on:
-  push:
-    branches: [ master ]
-    paths: 
-      - '**.py'
-      - '**.yml'
-```
-
-Assim, toda vez que acontecer um push para a master que esteja modificando arquivos .py ou .yml ele ativa a action, caso contrário ele não ativa.
-
-#### Serverless
-[Documentação](https://www.serverless.com/framework/docs/providers/aws/guide/packaging/)
-
-Outro problema, é que está subindo para dentro da função lambda tudo que está nessa pasta. Até mesmo as imgagens, e isso deixa tudo mais lento. para impedir que isso aconteça apenas adicione ao arquivo `serverless.yml` as linha abaixo
-
-```yml
-package:
-  exclude:
-    - img/**
-    - README.md
-    - LICENSE
-    - .github/**
-```
-
-# CLI
+# 4. TESTE SUAS APLICAÇÕES LOCALMENTE
 ---
 
-## Criando usuário
-Agora vá até a aws e crie um novo usuário IAM
+Quando estamos desenvolvendo, não queremos gastar com testes, então temos aqui um jeito de fazer os testes de forma local. Para isso vamos precisar de duas ferramentas, o Serverless e seus plugins e o [Localstack](https://github.com/localstack/localstack).
 
-- entre na sua conta e pesquise por IAM no painel de controle da aws
-- Chegando no painel, escolha na barra leteral a opção `Users`
-- Click no botão `Add user`
+O Localstack vai simular um ambiente da aws dentro da nossa máquina, tudo utilizando docker, então vai ser necessário instalar o docker.
 
-<img src='./img/fig001.png'/>
+```sh
+$ sudo apt install docker.io
+$ sudo curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+$ sudo chmod +x /usr/local/bin/docker-compose
+$ sudo groupadd docker
+$ sudo usermod -aG docker $USER
+$ su $USER
+```
 
-- De um nome para esse usuário e o de acesso programático
+## 4.1 TESTE DE API
+---
 
-<img src='./img/fig002.png'/>
+> OS CÓDIGOS REFERENTES A ESSA PARTE ESTÃO EM [02_SERVERLESS-OFFLINE](./02_SERVERLESS-OFFLINE)
 
-- Nas permissões escolha `Attach existing policies directly` e escolha a opção `AdministratorAccess`
+Caso você tenha apenas uma api, e não está querendo fazer nada relacionado com eventos do ecossistema da aws, você não vai nem precisar do localstack, somente do serverless e um plugin.
 
-<img src='./img/fig003.png'/>
+Primeiro configure um arquivo `serverless.yml` pois a cli do serverless só funciona em pastas que contenham o arquivo.
 
-> OBS.: se for o caso, você pode escolher politicas de acesso diferentes para seus usuários, eu peguei essa, mas ela da acesso a tudo, então vai de cada caso, mas garanta que tera acesso a tudo que for necessário.
+```yml
+service: serverless-offline
 
-- nas próximas duas telas, apenas de next.
+provider:
+  name: aws
+  runtime: python3.8
 
-- na última tela a aws vai te mostrar a `Access key ID` e a `Secret access key`. Guarde essas duas informações pois serão necessárias posteriormente.
+package:
+  excludeDevDependencies: true
+  individually: true
 
-<img src='./img/fig004.png'/>
+plugins:
+  - serverless-offline
 
-> OBS.: se não salvar essas informações ou esquecer depois, entre no seu usuário e vá em `Security crdentials` e em `Create access key`.
+functions:
+  hello:
+    handler: handler.hello
+    events:
+        - http:
+            path: /hi
+            method: any
+```
 
-<img src='./img/fig005.png'/>
+Nesse arquivo eu configurei o provider da aws para python, dando o nome da função de serverless-offline, e indicando que quero utilizar o plugin do serverless-offline. Que é o que utilizaremos para montar o ambiente local. Para instalá-lo utilize o comando de instalação de plugins do serverless (no caso desse plugin eu não consegui instalar com o comando padrão, então se for o seu caso utilize o outro comando que deixarei de opção):
 
-## Criando a função
+```sh
+$ serverless plugin install --name serverless-offline
+```
 
-Aqui vamos criar a função via interface da aws. Para isso:
+Ou se der errado, apague o package.json e rode esse comando:
 
-- Pesquise no console por lambda:
+```sh
+$ npm install serverless-offline --save-dev
+```
 
-- Clique em `Create function`:
+Agora você pode criar uma função, que no meu caso utilizarei a seguinte:
 
-<img src='./img/fig016.png'/>
+```Python
+import json
 
-- Escolha um nome e a runtime da sua função, e depois click em `Create function`
+def hello(event, context):
+    print('aplicação serverless rodando tranquilamente')
+    response = {
+        "statusCode": 200
+    }
+    return response
+```
 
-<img src='./img/fig017.png'/>
+Depois de ter instalado o plugin, e ter criado a função, você pode rodar o comando:
+```sh
+$ serverless offline 
+```
 
-- Agora configure o trigger da forma que preferir, e copie o código da sua função lambda para ter um ponto de partida.
+E isso vai te gerar um endpoint, que ao chamá-lo irá retornar o nosso print no console.
 
-<img src='./img/fig018.png'/>
+> OBS.: Se não der certo esse comando, veja se o plugin continua listado no seu arquivo serverless.yml
 
-> OBS.: Não sei porque, mas a minha lambda foi criada com o código errado no import, `- import json`, depois eu retirei o traço e funcionou normal, então fique atento com a sua.
+<img src='./img/fig014.png'/>
 
-## Github
+## 4.2 LOCALSTACK
+---
 
-Para gerenciar o nosso código, vamos utilizar o github, então 
+> OS CÓDIGOS REFERENTES A ESSA PARTE ESTÃO EM [03_SERVERLESS-LOCALSTACK](./03_SERVERLESS-LOCALSTACK)
+
+Com o localstack você consegue emular todo o ambiente da aws, isso possibilita os testes com eventos da aws e sua lambda.
+
+Para colocar o mesmo para funcionar, você precisa do arquivo `docker-compose.yml`
+
+```yml
+version: '3'
+services:
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,lambda,cloudformation,cloudwatch,sts,iam,dynamodb
+      - LAMBDA_EXECUTOR=docker
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+```
+
+E digitar o comando 
+
+```sh
+$ docker-compose up
+```
+
+> OBS.: Se quiser deixar em modo detached é só colocar -d na frente
+
+nesse caso ai eu estou instânciando os serviços do s3, lambda, cloudformation, cloudwatch, sts, iam e dynamodb.
+
+Agora podemos criar nossa lambda dentro do contâiner utilizando a cli, mas é melhor utilizar o serverless.
+
+> OBS.: para utilizar a cli da aws você precisa definir o endpoint que lea vai atuar sempre que digitar um comando com ela, para isso passe a flag --endpoint na frente dos comandos: `aws <seu comando> --endpoint-url=http://localhost:4566`.
+
+Para utilizar o serverless para criar coisas dentro do localstack vamos utilizar o plugin `serverless-localstack`. E para instalá-lo você digita o comando:
+
+```sh
+$ serverless plugin install --name serverless-localstack
+```
+
+> OBS.: Lembre-se que é necessário que tenha o arquivo serverless.yml primeiro.
+
+A lambda que criarei será uma que executa assim que um arquivo csv é colocado dentro de um bucket de testes. Assim o arquivo de configuração `serverless.yml` fica da seguinte forma:
+
+```yml
+service: serverless-localstack-example
+
+provider:
+  name: aws
+  runtime: python3.8
+  region: us-east-1
+  stage: local
+plugins:
+  - serverless-localstack
+custom:
+  localstack:
+    stages:
+      - local
+    autostart: false
+    debug: true
+    endpoints:
+      S3: http://localhost:4566
+      CloudFormation: http://localhost:4566
+      Lambda: http://localhost:4566
+      IAM: http://localhost:4566
+      STS: http://localhost:4566
+      
+
+package:
+  individually: true 
+  excludeDevDependencies: true
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - s3:
+          bucket: 'teste'
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .csv
+```
+
+O interessante aqui é a parte do `custom` que é o que indica que essa função deve ser criada localmente. Se retirarmos essa parte do nosso arquivo, ela vai ser mandada para a aws.
+
+Uma vez que temos o nosso arquivo criado, precisamos criar nossa função lambda.
+
+```Python
+import json
+import csv
+import boto3
+import os
+
+if ('LOCALSTACK_HOSTNAME' in os.environ):
+    config_s3 = {
+        'service_name': 's3',
+        'aws_access_key_id': '123',
+        'aws_secret_access_key': '123',
+        'endpoint_url': 'http://'+os.environ['LOCALSTACK_HOSTNAME']+':4566'
+    }
+else:
+    config_s3 = {
+        'service_name': 's3'
+    }
+
+s3 = boto3.client(**config_s3)
+
+def hello(event, context):
+    bucket = event['Records'][0]['s3']['bucket']['name']
+    key = event['Records'][0]['s3']['object']['key']
+    obj = s3.get_object(Bucket=bucket, Key=key)['Body']
+    print('arquivo csv', obj)
+    print('o arquivo ', key, ' chegou ao bucket ', bucket)
+
+    response = {
+        "statusCode": 200
+    }
+    return response
+```
+
+Observe que para essa função eu verifico se a variável de ambiente `LOCALSTACK_HOSTNAME` existe, pois se ela existir é um indicativo que estou trabalhando com o localstack e não com a aws, logo  eu preciso configurar o client de forma a apontar para dentro do próprio container, o que não é necessário quando estamos na aws propriamente dita, assim a função não precisa de modificações para ir para a aws. 
+
+> OBS.: As keys podem ser qualquer coisa, só não podem ficar em branco.
+
+
+Agora que temos a função, o arquivo de configurações e o container rodando, você pode rodar o comando 
+
+```sh
+$ serverless deploy
+```
+
+> OBS.: Caso atualize algo na sua função, é só rodar esse comando novamente que irá sobrescrever o que existe dento do container, então não é necessário reiniciar o container.
+
+> OBS.: Não crie o bucket dentro do container antes, isso vai bugar... deixe que o serverless cria automáticamente para você.
+
+Agora que temos a função dentro do container vamos mandar um arquivo para lá. Para isso poderíamos utilizar a cli, mas eu criei um script utilizando a sdk para python da aws (boto3).
+
+```Python
+import boto3
+
+config_s3 = {
+    'service_name': 's3',
+    'aws_access_key_id': '123',
+    'aws_secret_access_key': '123',
+    'endpoint_url': 'http://localhost:4566'
+}
+
+my_bucket = 'teste'
+test_file = 'teste.csv'
+
+s3 = boto3.client(**config_s3)
+
+s3.put_object(Body=test_file, Bucket=my_bucket, Key=test_file) 
+objects_list = s3.list_objects_v2(Bucket=my_bucket)
+print(objects_list)
+```
+
+Então é só mandar isso rodar no seu terminal que irá mandar o arquivo para dentro do bucket lá no container. Note que o terminal que está rodando o container mudou um pouco. Mas para ver melhor o que aconteceu, eu criei um script que captura os logs do cloudwatch:
+
+```Python
+import boto3
+import json
+
+config_cw_logs = {
+    'service_name': 'logs',
+    'aws_access_key_id': '123',
+    'aws_secret_access_key': '123',
+    'region_name': 'us-east-1',
+    'endpoint_url': 'http://localhost:4566'
+}
+
+my_bucket = 'teste'
+test_file = 'teste.csv'
+
+cw_logs = boto3.client(**config_cw_logs)
+
+logGroupName = cw_logs.describe_log_groups()['logGroups'][0]['logGroupName']
+
+logStreams = cw_logs.describe_log_streams(logGroupName=logGroupName)['logStreams']
+
+logs_msg = []
+for logStream in logStreams:
+    logStreamName = logStream['logStreamName']
+    logs = cw_logs.get_log_events(logGroupName=logGroupName, logStreamName=logStreamName)
+    for log in logs['events']:
+        print('------------------------------------------------------------------')
+        print(log['message'])
+```
+
+É só radar ele no terminal que irá ver os logs gerados, assim você pode saber se tudo deu certo.
+
+> OBS.: note que agora o endpoint_url está apontando para um endereço diferente do da lambda, isso porque esses códigos executam na minha máquina, e o da lambda executará dentro do container.
+
+# 5. GITHUB E CONTINUOUS DEPLOY
+---
+
+> OS CÓDIGOS REFERENTES A ESSA PARTE ESTÃO EM [04_GITHUB-ACTIONS](./04_GITHUB-ACTIONS)
+
+Para gerenciar o nosso código, e mandá-lo para a aws de forma integrada, vamos utilizar o github, então 
 - crie um repositório para essa função, 
 - clone-o para sua máquina,
-- adicione um arquivo chamado lambda_funcition.py,
+- adicione um arquivo chamado lambda_function.py,
   > OBS.: Caso queira dar outro nome para o arquivo, não tem problema, mas lembre-se de modificar as chamadas a esse arquivo em todos os lugares daqui para frente.
 - Copie o código da função lambda para dentro desse arquivo, 
 - Faça o push dessa modificação para o seu repositório remoto no github.
 
-<img src='./img/fig019.gif'/>
+<img src='./img/fig015.gif'/>
 
-### Github actions
+> OBS.: Esse processo pode ser feito dando um serverless deploy do seu próprio terminal, mas é mais rápido utilizar a action (tanto em tempo para subir a função quanto em praticidade). Então eu utilizo o serverless somente para criar a função e me auxiliar nos testes locais, mas para mandar o código eu sempre utilizo a action, pois de uma forma ou outra eu preciso subir esse código para o github.
+
+## 5.1 GITHUB ACTIONS
+---
 
 Utilizando o github actions, vamos criar uma action que fará o deploy para nós sempre que houver um push para dentro da branch master do nosso repositório.
 
@@ -479,11 +711,11 @@ A action precisará das nossas chaves de usuário, para isso:
 - Vá até o repositório no github
 - Abra as `Settings` do repositório
 
-<img src='./img/fig011.png'/>
+<img src='./img/fig016.png'/>
 
 - Vá em `Secrets` e depois em `New secret`, para criar uma chave, veja na imagem que criei duas chaves, que são as chaves necessárias para a cli ter acesso a aws. Uma coisa importante é que nesse caso os nomes precisam ser exatamente esses.
 
-<img src='./img/fig020.png'/>
+<img src='./img/fig017.png'/>
 
 > OBS.: Como já diz na propria página do github, essas variáveis ambiente não são mostradas para ninguém, nem mesmo para um fork da aplicação.
 
@@ -508,7 +740,9 @@ name: CD
 on:
   push:
     branches: [ master ]
-
+    paths: 
+      - '**.py'
+      - '**.yml'
 jobs:
   deploy:
     name: Upload to Amazon Lambda
@@ -534,11 +768,12 @@ jobs:
 
 > OBS.: Esse código está dentro do arquivo `cli_main_action.yml`.
 
-<img src='./img/fig021.gif'/>
+<img src='./img/fig018.gif'/>
 
-#### Explicando a action
+### 5.1.1 Explicando a action
+---
 
-Nessa parte eu simplesmente dei um nome para minha action, e falei que ela deve ser executada quando houver um push para dentro da master. E inicializei as jobs, com o nome de `Upload to Amazon Lambda`, sendo que elas vão executar em uma máquina ubuntu na última versão
+Nessa parte eu simplesmente dei um nome para minha action, e falei que ela deve ser executada quando houver um push para dentro da master se os arquivos modificados forem .py ou .yml. E inicializei as jobs, com o nome de `Upload to Amazon Lambda`, sendo que elas vão executar em uma máquina ubuntu na última versão
 
 ```yml
 name: CD
@@ -546,7 +781,9 @@ name: CD
 on:
   push:
     branches: [ master ]
-
+    paths: 
+      - '**.py'
+      - '**.yml'
 jobs:
   deploy:
     name: Upload to Amazon Lambda
@@ -574,7 +811,7 @@ Aqui eu faço um zip do arquivo da função lambda e chamo ele de `lambda_functi
 
 ---
 
-Esse processo é o mais importante de todos, com ele nós nos conectamos a aws cli por meio de nossas credenciais, Essa action foi criada pela propria aws, e está disponível no [github de actions da aws](https://github.com/aws-actions/configure-aws-credentials). Juntamente com outras actions.
+Esse processo é o mais importante de todos, com ele nós nos conectamos a aws cli por meio de nossas credenciais, Essa action foi criada pela própria aws, e está disponível no [github de actions da aws](https://github.com/aws-actions/configure-aws-credentials). Juntamente com outras actions.
 
 ```yml
     - name: Configure AWS credentials from Test account
@@ -597,9 +834,3 @@ E como a action anterior nos conecta a cli da aws, podemos agora executar comand
 ```shell
 $ aws lambda update-function-code --function-name <lambda_name> --zip-file fileb://<code_file_name.zip>
 ```
-
-## Mostrando que funciona
-
-<img src='./img/fig022.gif'/>
-
-

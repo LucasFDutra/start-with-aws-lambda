@@ -1,0 +1,21 @@
+service: serverless-offline
+
+
+provider:
+  name: aws
+  runtime: python3.8
+
+package:
+  excludeDevDependencies: true
+  individually: true
+
+plugins:
+  - serverless-offline
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+        - http:
+            path: /hi
+            method: any

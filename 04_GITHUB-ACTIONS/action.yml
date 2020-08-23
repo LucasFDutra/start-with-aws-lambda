@@ -3,7 +3,9 @@ name: CD
 on:
   push:
     branches: [ master ]
-
+    paths: 
+      - '**.py'
+      - '**.yml'
 jobs:
   deploy:
     name: Upload to Amazon Lambda
