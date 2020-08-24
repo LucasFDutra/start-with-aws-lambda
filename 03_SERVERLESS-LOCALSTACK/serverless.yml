@@ -14,13 +14,11 @@ custom:
     autostart: false
     debug: true
     endpoints:
-      # This section is optional - can be used for customizing the target endpoints
       S3: http://localhost:4566
       CloudFormation: http://localhost:4566
       Lambda: http://localhost:4566
       IAM: http://localhost:4566
       STS: http://localhost:4566
-      
 
 package:
   individually: true 
