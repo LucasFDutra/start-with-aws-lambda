@@ -150,6 +150,8 @@ import numpy as np
 
 Como se estivesse na sua máquina.
 
+se tiver com dúvidas de como gerar esse pacote, a aws tem as instruções na documentação, vou deixar [aqui](https://docs.aws.amazon.com/pt_br/lambda/latest/dg/python-package.html) a documentação para python, mas esse tópico existe para todas as outras linguagens, é só procurar na barra lateral esquerda.
+
 # 3. SERVERLESS FRAMEWORK
 ---
 
